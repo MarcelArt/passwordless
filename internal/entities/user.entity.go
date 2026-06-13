@@ -1,8 +1,8 @@
 package entities
 
 import (
+	"encoding/binary"
 	"fmt"
-	"strconv"
 
 	"github.com/MarcelArt/passwordless/pkg/jsonb"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -18,7 +18,9 @@ type User struct {
 }
 
 func (m *User) WebAuthnID() []byte {
-	return []byte(strconv.Itoa(int(m.ID)))
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(m.ID)) // Converts ID 3 into a stable 8-byte sequence
+	return buf
 }
 
 func (m *User) WebAuthnName() string {

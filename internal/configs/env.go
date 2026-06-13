@@ -21,6 +21,9 @@ type env struct {
 	DefaultUser     string
 	DefaultEmail    string
 	DefaultPassword string
+	RPDisplayName   string
+	RPID            string
+	RPOrigins       string
 }
 
 var Env *env
@@ -46,5 +49,8 @@ func SetupENV() {
 		DefaultUser:     os.Getenv("DEFAULT_USER"),
 		DefaultEmail:    os.Getenv("DEFAULT_EMAIL"),
 		DefaultPassword: defaultPassword,
+		RPDisplayName:   os.Getenv("RP_DISPLAY_NAME"),
+		RPID:            os.Getenv("RP_ID"),
+		RPOrigins:       os.Getenv("RP_ORIGINS"),
 	}
 }

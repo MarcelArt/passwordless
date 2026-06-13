@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/MarcelArt/passwordless/internal/configs"
 	"github.com/MarcelArt/passwordless/internal/v1/models"
 	"github.com/MarcelArt/passwordless/internal/v1/repositories"
 	"github.com/MarcelArt/passwordless/pkg/jsonb"
@@ -29,9 +30,9 @@ type AuthService struct {
 
 func NewAuthService(uRepo repositories.IUserRepo) (*AuthService, error) {
 	webAuthnHandler, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "Lepas",
-		RPID:          "localhost", // Must match your domain
-		RPOrigins:     []string{"http://localhost:7001"},
+		RPDisplayName: configs.Env.RPDisplayName,
+		RPID:          configs.Env.RPID, // Must match your domain
+		RPOrigins:     []string{configs.Env.RPOrigins},
 	})
 	if err != nil {
 		return nil, err
