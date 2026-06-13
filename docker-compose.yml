@@ -1,0 +1,33 @@
+services:
+  passwordless-db-migration:
+    image: marcelaritonang/passwordless:latest
+    pull_policy: always
+    container_name: passwordless-db-migration
+    command: ["migrate"]
+    env_file:
+      - .env
+    restart: "no"
+    networks:
+      - internet
+
+  passwordless:
+    image: marcelaritonang/passwordless:latest
+    pull_policy: always
+    container_name: passwordless
+    ports:
+      - 7002:7002
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      passwordless-db-migration:
+        condition: service_completed_successfully
+    networks:
+      - internet
+    # volumes:
+    #   - ./public/uploads:/app/public/uploads
+
+networks:
+  internet:
+    name: internet
+    external: true

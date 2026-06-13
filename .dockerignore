@@ -1,0 +1,29 @@
+# Version control
+.git
+.gitignore
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+example.env
+
+# Build outputs and temporary files
+tmp/
+bin/
+*.exe
+*.test
+out/
+dist/
+
+# Docker configuration files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE and local developer files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
