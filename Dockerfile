@@ -6,6 +6,8 @@ FROM golang:alpine AS builder
 # Install system packages required for compiling Go binaries
 RUN apk add --no-cache git ca-certificates tzdata
 
+RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
+
 # Set the working directory inside the container
 WORKDIR /src
 
@@ -17,6 +19,9 @@ RUN go mod download
 
 # Copy the entire source code
 COPY . .
+
+# Generate Swagger documentation before compiling
+RUN swag init --parseDependency --parseInternal
 
 # Build the application binary.
 # CGO_ENABLED=0 builds a statically linked binary (ideal for scratch/alpine runners).
