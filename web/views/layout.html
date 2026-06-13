@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} | Lepas</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- HTMX and Alpine.js -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #090a0f;
+            --card-bg: rgba(17, 19, 31, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #9d4edd;
+            --primary-glow: rgba(157, 78, 221, 0.4);
+            --secondary: #00f5d4;
+            --secondary-glow: rgba(0, 245, 212, 0.3);
+            --text-main: #f8f9fa;
+            --text-muted: #9499b3;
+            --text-error: #ff5c8a;
+            --text-success: #00f5d4;
+            --input-bg: rgba(255, 255, 255, 0.03);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --input-focus: #9d4edd;
+            --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(157, 78, 221, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(0, 245, 212, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Glow Objects */
+        .ambient-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            filter: blur(150px);
+            opacity: 0.2;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+        }
+
+        .glow-top-left {
+            top: -50px;
+            left: -50px;
+        }
+
+        .glow-bottom-right {
+            bottom: -50px;
+            right: -50px;
+            background: var(--secondary);
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        /* Glassmorphism Container */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                to right,
+                transparent,
+                rgba(255, 255, 255, 0.03),
+                transparent
+            );
+            transform: rotate(30deg);
+            transition: transform 0.5s;
+            pointer-events: none;
+        }
+
+        .glass-card:hover::before {
+            transform: translate(50%, 50%) rotate(30deg);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff 30%, #a0a2b1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .form-input:focus {
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Custom validation status */
+        .validation-status {
+            font-size: 0.8rem;
+            margin-top: 6px;
+            display: block;
+            min-height: 18px;
+        }
+
+        .validation-status.error {
+            color: var(--text-error);
+        }
+
+        .validation-status.success {
+            color: var(--text-success);
+        }
+
+        /* Buttons & Actions */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: var(--font-family);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #7b2cbf 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(157, 78, 221, 0.6);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Helper Classes */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mt-6 {
+            margin-top: 24px;
+        }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 245, 212, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(0, 245, 212, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 245, 212, 0);
+            }
+        }
+
+        .pulse-secondary {
+            animation: pulse-glow 2s infinite;
+        }
+
+        .flex-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    {{ block "head" . }}{{ end }}
+</head>
+<body>
+    <div class="ambient-glow glow-top-left"></div>
+    <div class="ambient-glow glow-bottom-right"></div>
+    
+    <main>
+        {{ template "content" . }}
+    </main>
+</body>
+</html>

@@ -1,0 +1,294 @@
+{{ define "content" }}
+<div class="glass-card" x-data="authRegister()">
+    <!-- Step 1: Input Fields -->
+    <div x-show="state === 'input'">
+        <h1>Create Account</h1>
+        <p class="subtitle">Secure your account with WebAuthn Passkeys</p>
+
+        <form @submit.prevent="submitRegister">
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-input" 
+                        x-model="username" 
+                        placeholder="john_doe"
+                        hx-post="/web/register/validate/username"
+                        hx-trigger="blur, change delay:400ms"
+                        hx-target="#username-validation"
+                        hx-swap="outerHTML"
+                        required
+                    >
+                </div>
+                <span id="username-validation" class="validation-status"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-input" 
+                        x-model="email" 
+                        placeholder="john@example.com"
+                        hx-post="/web/register/validate/email"
+                        hx-trigger="blur, change delay:400ms"
+                        hx-target="#email-validation"
+                        hx-swap="outerHTML"
+                        required
+                    >
+                </div>
+                <span id="email-validation" class="validation-status"></span>
+            </div>
+
+
+
+            <button type="submit" class="btn btn-primary mt-6">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Register with Passkey
+            </button>
+        </form>
+        
+        <p class="text-center mt-4" style="font-size: 0.9rem; color: var(--text-muted);">
+            By registering, you set up a cryptographic credential on this device.
+        </p>
+    </div>
+
+    <!-- Step 2: Connecting / Loading -->
+    <div x-show="state === 'connecting'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <svg class="pulse-secondary" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.5" style="border-radius: 50%; padding: 16px; background: rgba(0, 245, 212, 0.05);">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600;">Contacting Server...</h2>
+        <p class="subtitle mt-4">Initializing registration credentials and generating cryptographic challenge.</p>
+    </div>
+
+    <!-- Step 3: Authenticating (Prompting security key / FaceID) -->
+    <div x-show="state === 'authenticating'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <div class="pulse-secondary" style="border-radius: 50%; padding: 8px; background: rgba(0, 245, 212, 0.1);">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                    <path d="M12 8v4l3 3"></path>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600; color: var(--secondary);">Verify Identity</h2>
+        <p class="subtitle mt-4">Follow the prompt on your screen to complete registration using Touch ID, Face ID, or your Security Key.</p>
+    </div>
+
+    <!-- Step 4: Submitting Verification -->
+    <div x-show="state === 'submitting'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <svg class="pulse-secondary" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="border-radius: 50%; padding: 16px; background: rgba(157, 78, 221, 0.05);">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600;">Verifying Credential...</h2>
+        <p class="subtitle mt-4">Sending signed credential payload back to server for registration verification.</p>
+    </div>
+
+    <!-- Step 5: Success -->
+    <div x-show="state === 'success'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <div style="border-radius: 50%; padding: 20px; background: rgba(0, 245, 212, 0.1); border: 2px solid var(--secondary);">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-6" style="font-size: 1.8rem; font-weight: 700; color: #fff;">Registration Successful!</h2>
+        <p class="subtitle mt-4">Your WebAuthn passkey has been successfully registered. You can now use your device to sign in securely.</p>
+        
+        <a href="/web/login" class="btn btn-primary mt-6" style="text-decoration: none;">
+            Proceed to Sign In
+        </a>
+    </div>
+
+    <!-- Step 6: Error -->
+    <div x-show="state === 'error'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <div style="border-radius: 50%; padding: 20px; background: rgba(255, 92, 138, 0.1); border: 2px solid var(--text-error);">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--text-error)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-6" style="font-size: 1.6rem; font-weight: 700; color: var(--text-error);">Registration Failed</h2>
+        <p class="subtitle mt-4" x-text="errorMessage">An unexpected error occurred during WebAuthn registration.</p>
+        
+        <button @click="state = 'input'" class="btn btn-primary mt-6">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 2v6h6M21.5 22v-6h-6"></path>
+                <path d="M22 11.5A10 10 0 0 0 9.5 3.5"></path>
+                <path d="M2 12.5A10 10 0 0 0 14.5 20.5"></path>
+            </svg>
+            Try Again
+        </button>
+    </div>
+</div>
+
+<script>
+    // Utility functions to convert buffers to and from base64url strings
+    function arrayBufferToBase64URL(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = window.btoa(binary);
+        return base64
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
+    function base64URLToArrayBuffer(base64url) {
+        let base64 = base64url
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        while (base64.length % 4) {
+            base64 += '=';
+        }
+        const binary = window.atob(base64);
+        const len = binary.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    function prepareOptions(options) {
+        // Decode challenge
+        if (options.publicKey.challenge) {
+            options.publicKey.challenge = base64URLToArrayBuffer(options.publicKey.challenge);
+        }
+        // Decode user.id
+        if (options.publicKey.user && options.publicKey.user.id) {
+            options.publicKey.user.id = base64URLToArrayBuffer(options.publicKey.user.id);
+        }
+        // Decode excludeCredentials
+        if (options.publicKey.excludeCredentials) {
+            for (let cred of options.publicKey.excludeCredentials) {
+                if (cred.id) {
+                    cred.id = base64URLToArrayBuffer(cred.id);
+                }
+            }
+        }
+        return options;
+    }
+
+    function authRegister() {
+        return {
+            username: '',
+            email: '',
+            state: 'input',
+            errorMessage: '',
+            
+            async submitRegister() {
+                if (!this.username || !this.email) {
+                    this.state = 'error';
+                    this.errorMessage = 'All fields are required.';
+                    return;
+                }
+                
+                // Clear any validation errors first
+                const usernameVal = document.getElementById('username-validation');
+                const emailVal = document.getElementById('email-validation');
+                if ((usernameVal && usernameVal.classList.contains('error')) || 
+                    (emailVal && emailVal.classList.contains('error'))) {
+                    this.state = 'error';
+                    this.errorMessage = 'Please fix the errors in the form first.';
+                    return;
+                }
+
+                this.state = 'connecting';
+                this.errorMessage = '';
+                
+                try {
+                    // Step 1: Begin registration (returns options and session_id)
+                    const beginResponse = await fetch('/web/register/begin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: this.username,
+                            email: this.email
+                        })
+                    });
+                    
+                    const beginResult = await beginResponse.json();
+                    if (!beginResponse.ok) {
+                        throw new Error(beginResult.message || 'Failed to start registration.');
+                    }
+                    
+                    // Step 2: Show native browser authenticator (TouchID, FaceID, Security Key)
+                    this.state = 'authenticating';
+                    
+                    const options = beginResult.options;
+                    const sessionID = beginResult.sessionId;
+                    
+                    const decodedOptions = prepareOptions(options);
+                    
+                    const credential = await navigator.credentials.create({
+                        publicKey: decodedOptions.publicKey
+                    });
+                    
+                    // Step 3: Send the signed credential payload back to finish registration
+                    this.state = 'submitting';
+                    
+                    const serializedCred = {
+                        id: credential.id,
+                        rawId: arrayBufferToBase64URL(credential.rawId),
+                        type: credential.type,
+                        response: {
+                            clientDataJSON: arrayBufferToBase64URL(credential.response.clientDataJSON),
+                            attestationObject: arrayBufferToBase64URL(credential.response.attestationObject),
+                            transports: credential.response.getTransports ? credential.response.getTransports() : []
+                        }
+                    };
+                    
+                    const finishResponse = await fetch(`/web/register/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(serializedCred)
+                    });
+                    
+                    const finishResult = await finishResponse.json();
+                    if (!finishResponse.ok) {
+                        throw new Error(finishResult.message || 'Verification of credential failed.');
+                    }
+                    
+                    // Step 4: Finished successfully
+                    this.state = 'success';
+                } catch (err) {
+                    console.error(err);
+                    this.state = 'error';
+                    this.errorMessage = err.message || 'An unexpected error occurred.';
+                }
+            }
+        };
+    }
+</script>
+{{ end }}

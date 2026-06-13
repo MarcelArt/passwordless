@@ -1,0 +1,5 @@
+{{ if .IsValid }}
+<span id="{{ .Target }}-validation" class="validation-status success">✓ {{ .Message }}</span>
+{{ else }}
+<span id="{{ .Target }}-validation" class="validation-status error">✗ {{ .Message }}</span>
+{{ end }}

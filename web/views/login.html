@@ -1,0 +1,285 @@
+{{ define "content" }}
+<div class="glass-card" x-data="authLogin()">
+    <!-- Step 1: Input Fields -->
+    <div x-show="state === 'input'">
+        <h1>Welcome Back</h1>
+        <p class="subtitle">Sign in securely using passwordless passkeys</p>
+
+        <form @submit.prevent="submitLogin">
+            <div class="form-group">
+                <label class="form-label" for="username">Username or Email</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-input" 
+                        x-model="username" 
+                        placeholder="john_doe"
+                        required
+                    >
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-6">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Sign In with Passkey
+            </button>
+        </form>
+
+        <p class="text-center mt-4" style="font-size: 0.9rem; color: var(--text-muted);">
+            Don't have an account? <a href="/register" style="color: var(--primary); text-decoration: none; font-weight: 500;">Register here</a>
+        </p>
+    </div>
+
+    <!-- Step 2: Connecting / Loading -->
+    <div x-show="state === 'connecting'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <svg class="pulse-secondary" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.5" style="border-radius: 50%; padding: 16px; background: rgba(0, 245, 212, 0.05);">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600;">Contacting Server...</h2>
+        <p class="subtitle mt-4">Initializing login session and generating assertion challenge.</p>
+    </div>
+
+    <!-- Step 3: Authenticating (Prompting security key / FaceID) -->
+    <div x-show="state === 'authenticating'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <div class="pulse-secondary" style="border-radius: 50%; padding: 8px; background: rgba(0, 245, 212, 0.1);">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                    <path d="M12 8v4l3 3"></path>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600; color: var(--secondary);">Verify Credential</h2>
+        <p class="subtitle mt-4">Place your fingerprint, face, or security key to assert identity and sign in.</p>
+    </div>
+
+    <!-- Step 4: Submitting Verification -->
+    <div x-show="state === 'submitting'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <svg class="pulse-secondary" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="border-radius: 50%; padding: 16px; background: rgba(157, 78, 221, 0.05);">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600;">Verifying Signature...</h2>
+        <p class="subtitle mt-4">Verifying device assertion signature on the server.</p>
+    </div>
+
+    <!-- Step 5: Success (Display Logged In User) -->
+    <div x-show="state === 'success'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 100px;">
+            <div style="border-radius: 50%; padding: 16px; background: rgba(0, 245, 212, 0.1); border: 2px solid var(--secondary);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-4" style="font-size: 1.8rem; font-weight: 700; color: #fff;">Authenticated</h2>
+        <p class="subtitle mt-2" style="margin-bottom: 24px;">Successfully signed in with passwordless WebAuthn.</p>
+        
+        <!-- User Profile Card -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 24px;">
+            <div class="flex-center" style="justify-content: flex-start; gap: 16px; margin-bottom: 16px;">
+                <img :src="'https://ui-avatars.com/api/?background=9d4edd&color=fff&name=' + encodeURIComponent(user.username)" style="width: 48px; height: 48px; border-radius: 50%;" />
+                <div>
+                    <div style="font-weight: 600; font-size: 1.1rem; color: #fff;" x-text="user.username"></div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);" x-text="user.email"></div>
+                </div>
+            </div>
+            <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; font-size: 0.85rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">User ID:</span>
+                    <span style="font-family: monospace; color: #fff;" x-text="user.ID"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Auth Type:</span>
+                    <span style="color: var(--secondary); font-weight: 500;">FIDO2 / WebAuthn</span>
+                </div>
+            </div>
+        </div>
+
+        <button @click="logout()" class="btn btn-primary">
+            Sign Out
+        </button>
+    </div>
+
+    <!-- Step 6: Error -->
+    <div x-show="state === 'error'" class="text-center" style="display: none;">
+        <div class="flex-center" style="height: 120px;">
+            <div style="border-radius: 50%; padding: 20px; background: rgba(255, 92, 138, 0.1); border: 2px solid var(--text-error);">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--text-error)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-6" style="font-size: 1.6rem; font-weight: 700; color: var(--text-error);">Authentication Failed</h2>
+        <p class="subtitle mt-4" x-text="errorMessage">An error occurred during passkey sign in.</p>
+        
+        <button @click="state = 'input'" class="btn btn-primary mt-6">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 2v6h6M21.5 22v-6h-6"></path>
+                <path d="M22 11.5A10 10 0 0 0 9.5 3.5"></path>
+                <path d="M2 12.5A10 10 0 0 0 14.5 20.5"></path>
+            </svg>
+            Try Again
+        </button>
+    </div>
+</div>
+
+<script>
+    // Utility functions to convert buffers to and from base64url strings
+    function arrayBufferToBase64URL(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = window.btoa(binary);
+        return base64
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
+    function base64URLToArrayBuffer(base64url) {
+        let base64 = base64url
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        while (base64.length % 4) {
+            base64 += '=';
+        }
+        const binary = window.atob(base64);
+        const len = binary.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    function prepareLoginOptions(options) {
+        // Decode challenge
+        if (options.publicKey.challenge) {
+            options.publicKey.challenge = base64URLToArrayBuffer(options.publicKey.challenge);
+        }
+        // Decode allowCredentials IDs
+        if (options.publicKey.allowCredentials) {
+            for (let cred of options.publicKey.allowCredentials) {
+                if (cred.id) {
+                    cred.id = base64URLToArrayBuffer(cred.id);
+                }
+            }
+        }
+        return options;
+    }
+
+    function authLogin() {
+        return {
+            username: '',
+            state: 'input',
+            errorMessage: '',
+            user: {
+                ID: '',
+                username: '',
+                email: ''
+            },
+            
+            async submitLogin() {
+                if (!this.username) {
+                    this.state = 'error';
+                    this.errorMessage = 'Username or Email is required.';
+                    return;
+                }
+
+                this.state = 'connecting';
+                this.errorMessage = '';
+                
+                try {
+                    // Step 1: Begin Login
+                    const beginResponse = await fetch('/web/login/begin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: this.username
+                        })
+                    });
+                    
+                    const beginResult = await beginResponse.json();
+                    if (!beginResponse.ok) {
+                        throw new Error(beginResult.message || 'Failed to start authentication session.');
+                    }
+                    
+                    // Step 2: Show native browser sign in dialog
+                    this.state = 'authenticating';
+                    
+                    const options = beginResult.options;
+                    const sessionID = beginResult.sessionId;
+                    
+                    const decodedOptions = prepareLoginOptions(options);
+                    
+                    const credential = await navigator.credentials.get({
+                        publicKey: decodedOptions.publicKey
+                    });
+                    
+                    // Step 3: Send the assertions to backend to verify
+                    this.state = 'submitting';
+                    
+                    const serializedAssertion = {
+                        id: credential.id,
+                        rawId: arrayBufferToBase64URL(credential.rawId),
+                        type: credential.type,
+                        response: {
+                            clientDataJSON: arrayBufferToBase64URL(credential.response.clientDataJSON),
+                            authenticatorData: arrayBufferToBase64URL(credential.response.authenticatorData),
+                            signature: arrayBufferToBase64URL(credential.response.signature),
+                            userHandle: credential.response.userHandle ? arrayBufferToBase64URL(credential.response.userHandle) : null
+                        }
+                    };
+                    
+                    const finishResponse = await fetch(`/web/login/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(serializedAssertion)
+                    });
+                    
+                    const finishResult = await finishResponse.json();
+                    if (!finishResponse.ok) {
+                        throw new Error(finishResult.message || 'Verification of assertion failed.');
+                    }
+                    
+                    // Step 4: Finished successfully, save user info
+                    this.user = finishResult.user;
+                    this.state = 'success';
+                } catch (err) {
+                    console.error(err);
+                    this.state = 'error';
+                    this.errorMessage = err.message || 'An unexpected error occurred.';
+                }
+            },
+
+            logout() {
+                this.username = '';
+                this.user = { ID: '', username: '', email: '' };
+                this.state = 'input';
+            }
+        };
+    }
+</script>
+{{ end }}
