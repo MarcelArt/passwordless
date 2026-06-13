@@ -64,6 +64,9 @@ func (s *AuthService) RegisterBegin(c context.Context, input models.UserInput) (
 	}
 
 	options, sessionData, err := s.webAuthnHandler.BeginRegistration(&user)
+	if err != nil {
+		return res, fmt.Errorf("error creating session: %w", err)
+	}
 	sessionID := base64.StdEncoding.EncodeToString([]byte(sessionData.Challenge))
 
 	s.sessionDB[sessionID] = sessionData
