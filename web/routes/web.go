@@ -13,6 +13,8 @@ func SetupWebRoutes(r *gin.Engine) {
 
 	h := handlers.NewWebAuthHandler(userRepo)
 
+	r.GET("/.well-known/assetlinks.json", handlers.AssetLinks)
+
 	// Page routes
 	r.GET("/register", h.ShowRegister)
 	r.GET("/login", h.ShowLogin)
