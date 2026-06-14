@@ -12,7 +12,7 @@ type User struct {
 	gorm.Model
 	Username    string                             `gorm:"not null;unique" json:"username"`
 	Email       string                             `gorm:"not null;unique" json:"email"`
-	Password    string                             `json:"password"`
+	Password    string                             `json:"-"`
 	Credentials jsonb.JSONB[[]webauthn.Credential] `json:"credentials"`
 }
 
