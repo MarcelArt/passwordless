@@ -16,7 +16,7 @@
                         class="form-input" 
                         x-model="username" 
                         placeholder="john_doe"
-                        hx-post="/web/register/validate/username"
+                        hx-post="/register/validate/username"
                         hx-trigger="blur, change delay:400ms"
                         hx-target="#username-validation"
                         hx-swap="outerHTML"
@@ -36,7 +36,7 @@
                         class="form-input" 
                         x-model="email" 
                         placeholder="john@example.com"
-                        hx-post="/web/register/validate/email"
+                        hx-post="/register/validate/email"
                         hx-trigger="blur, change delay:400ms"
                         hx-target="#email-validation"
                         hx-swap="outerHTML"
@@ -112,7 +112,7 @@
         <h2 class="mt-6" style="font-size: 1.8rem; font-weight: 700; color: #fff;">Registration Successful!</h2>
         <p class="subtitle mt-4">Your WebAuthn passkey has been successfully registered. You can now use your device to sign in securely.</p>
         
-        <a href="/web/login" class="btn btn-primary mt-6" style="text-decoration: none;">
+        <a href="/login" class="btn btn-primary mt-6" style="text-decoration: none;">
             Proceed to Sign In
         </a>
     </div>
@@ -223,7 +223,7 @@
                 
                 try {
                     // Step 1: Begin registration (returns options and session_id)
-                    const beginResponse = await fetch('/web/register/begin', {
+                    const beginResponse = await fetch('/api/v1/auth/register/begin', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -236,15 +236,15 @@
                     });
                     
                     const beginResult = await beginResponse.json();
-                    if (!beginResponse.ok) {
+                    if (!beginResponse.ok || !beginResult.isSuccess) {
                         throw new Error(beginResult.message || 'Failed to start registration.');
                     }
                     
                     // Step 2: Show native browser authenticator (TouchID, FaceID, Security Key)
                     this.state = 'authenticating';
                     
-                    const options = beginResult.options;
-                    const sessionID = beginResult.sessionId;
+                    const options = beginResult.items.options;
+                    const sessionID = beginResult.items.sessionId;
                     
                     const decodedOptions = prepareOptions(options);
                     
@@ -266,7 +266,7 @@
                         }
                     };
                     
-                    const finishResponse = await fetch(`/web/register/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}`, {
+                    const finishResponse = await fetch(`/api/v1/auth/register/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}&email=${encodeURIComponent(this.email)}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -276,7 +276,7 @@
                     });
                     
                     const finishResult = await finishResponse.json();
-                    if (!finishResponse.ok) {
+                    if (!finishResponse.ok || !finishResult.isSuccess) {
                         throw new Error(finishResult.message || 'Verification of credential failed.');
                     }
                     

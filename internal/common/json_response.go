@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/MarcelArt/passwordless/internal/enums"
 	"gorm.io/gorm"
 )
 
@@ -39,6 +40,10 @@ func NewJSONResponse(items any, message string) *JSONResponse {
 func StatusCodeFromError(err error) int {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return http.StatusNotFound
+	}
+
+	if errors.Is(err, enums.ErrAlreadyRegsitered) {
+		return http.StatusUnauthorized
 	}
 
 	return http.StatusInternalServerError

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/MarcelArt/passwordless/internal/configs"
+	"github.com/MarcelArt/passwordless/internal/enums"
 	"github.com/MarcelArt/passwordless/internal/v1/models"
 	"github.com/MarcelArt/passwordless/internal/v1/repositories"
 	"github.com/MarcelArt/passwordless/pkg/jsonb"
@@ -17,7 +18,7 @@ import (
 
 type IAuthService interface {
 	RegisterBegin(c context.Context, input models.UserInput) (models.BeginRegisterWebAuthn, error)
-	RegisterFinish(c *gin.Context, username string, sessionID string) error
+	RegisterFinish(c *gin.Context, user models.UserInput, sessionID string) error
 	LoginBegin(c *gin.Context, username string) (models.BeginLoginWebAuthn, error)
 	LoginFinish(c *gin.Context, username string, sessionID string) (models.LoginResponse, error)
 }
@@ -51,17 +52,19 @@ func (s *AuthService) RegisterBegin(c context.Context, input models.UserInput) (
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return res, fmt.Errorf("unexpected error: %w", err)
 	}
-	if user.ID == 0 {
-		id, err := s.uRepo.Create(c, input)
-		if err != nil {
-			return res, fmt.Errorf("error creating user: %w", err)
-		}
+	if user.ID != 0 {
+		return res, enums.ErrAlreadyRegsitered
 
-		user.ID = id
-		user.Email = input.Email
-		user.Username = input.Username
-		user.Password = input.Password
+		// id, err := s.uRepo.Create(c, input)
+		// if err != nil {
+		// 	return res, fmt.Errorf("error creating user: %w", err)
+		// }
+
+		// user.ID = id
 	}
+	user.Email = input.Email
+	user.Username = input.Username
+	user.Password = input.Password
 
 	options, sessionData, err := s.webAuthnHandler.BeginRegistration(&user)
 	if err != nil {
@@ -77,15 +80,10 @@ func (s *AuthService) RegisterBegin(c context.Context, input models.UserInput) (
 	return res, nil
 }
 
-func (s *AuthService) RegisterFinish(c *gin.Context, username string, sessionID string) error {
+func (s *AuthService) RegisterFinish(c *gin.Context, user models.UserInput, sessionID string) error {
 	sessionData := s.sessionDB[sessionID]
 	if sessionData == nil {
 		return errors.New("session not found")
-	}
-
-	user, err := s.uRepo.GetByUsernameOrEmail(c, username)
-	if err != nil {
-		return err
 	}
 
 	credential, err := s.webAuthnHandler.FinishRegistration(&user, *sessionData, c.Request)
@@ -99,10 +97,8 @@ func (s *AuthService) RegisterFinish(c *gin.Context, username string, sessionID 
 	if err != nil {
 		return fmt.Errorf("failed serializing credentials: %w", err)
 	}
-	userUpdate := models.UserInput{
-		Credentials: jCredentials,
-	}
-	if err := s.uRepo.Update(c, user.ID, userUpdate); err != nil {
+	user.Credentials = jCredentials
+	if _, err := s.uRepo.Create(c, user); err != nil {
 		return fmt.Errorf("failed updating user: %w", err)
 	}
 	delete(s.sessionDB, sessionID)

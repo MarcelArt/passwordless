@@ -41,7 +41,7 @@ func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 
 	res, err := h.service.RegisterBegin(c, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, common.NewJSONResponse(err, "failed to register"))
+		c.JSON(common.StatusCodeFromError(err), common.NewJSONResponse(err, "failed to register"))
 		return
 	}
 
@@ -56,6 +56,7 @@ func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 // @Produce      json
 // @Param        session_id  query     string                            true  "Session ID"
 // @Param        username    query     string                            true  "Username"
+// @Param        email    query     string                            true  "Email"
 // @Param        input       body      protocol.CredentialCreationResponse true  "Credential Creation Response"
 // @Success      200         {object}  common.JSONResponse               "Registration finished"
 // @Failure      400         {object}  common.JSONResponse               "Invalid input data"
@@ -64,13 +65,18 @@ func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 	sessionID := c.Query("session_id")
 	username := c.Query("username")
+	email := c.Query("email")
+	user := models.UserInput{
+		Username: username,
+		Email:    email,
+	}
 
 	if sessionID == "" || username == "" {
 		c.JSON(http.StatusBadRequest, common.NewJSONResponse(errors.New("missing session_id or username parameters"), "missing session_id or username parameters"))
 		return
 	}
 
-	if err := h.service.RegisterFinish(c, username, sessionID); err != nil {
+	if err := h.service.RegisterFinish(c, user, sessionID); err != nil {
 		c.JSON(http.StatusInternalServerError, common.NewJSONResponse(err, "failed to register"))
 		return
 	}

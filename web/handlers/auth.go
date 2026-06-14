@@ -4,22 +4,17 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/MarcelArt/passwordless/internal/v1/models"
 	"github.com/MarcelArt/passwordless/internal/v1/repositories"
-	"github.com/MarcelArt/passwordless/internal/v1/services"
-	"github.com/MarcelArt/passwordless/web/viewmodels"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type WebAuthHandler struct {
-	authService services.IAuthService
 	userRepo    repositories.IUserRepo
 }
 
-func NewWebAuthHandler(authService services.IAuthService, userRepo repositories.IUserRepo) *WebAuthHandler {
+func NewWebAuthHandler(userRepo repositories.IUserRepo) *WebAuthHandler {
 	return &WebAuthHandler{
-		authService: authService,
 		userRepo:    userRepo,
 	}
 }
@@ -107,89 +102,9 @@ func (h *WebAuthHandler) ValidateEmail(c *gin.Context) {
 	})
 }
 
-// RegisterBegin handles initiating registration: inserts user skeleton and returns credential options
-func (h *WebAuthHandler) RegisterBegin(c *gin.Context) {
-	var form viewmodels.RegisterForm
-	if err := c.ShouldBindJSON(&form); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid registration data: " + err.Error()})
-		return
-	}
-
-	input := models.UserInput{
-		Username: form.Username,
-		Email:    form.Email,
-		Password: "", // Passwordless registration: no initial password
-	}
-
-	res, err := h.authService.RegisterBegin(c.Request.Context(), input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to initiate registration: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, res)
-}
-
-// RegisterFinish finishes the WebAuthn flow by validating and storing the device credential in the database
-func (h *WebAuthHandler) RegisterFinish(c *gin.Context) {
-	sessionID := c.Query("session_id")
-	username := c.Query("username")
-
-	if sessionID == "" || username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Missing session_id or username parameters"})
-		return
-	}
-
-	// Pass context and parameters to finish registration.
-	// Since we didn't read the Request Body here, it will be fully read inside authService.RegisterFinish.
-	if err := h.authService.RegisterFinish(c, username, sessionID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to complete registration: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "WebAuthn Registration complete"})
-}
-
 // ShowLogin renders the login page template
 func (h *WebAuthHandler) ShowLogin(c *gin.Context) {
 	Render(c, http.StatusOK, "login.html", gin.H{
 		"Title": "Sign In",
 	})
-}
-
-// LoginBegin initiates passwordless WebAuthn login assertion
-func (h *WebAuthHandler) LoginBegin(c *gin.Context) {
-	var form viewmodels.LoginForm
-	if err := c.ShouldBindJSON(&form); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid login data: " + err.Error()})
-		return
-	}
-
-	res, err := h.authService.LoginBegin(c, form.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to initiate login: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, res)
-}
-
-// LoginFinish completes passwordless WebAuthn login assertion and returns user details
-func (h *WebAuthHandler) LoginFinish(c *gin.Context) {
-	sessionID := c.Query("session_id")
-	username := c.Query("username")
-
-	if sessionID == "" || username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Missing session_id or username parameters"})
-		return
-	}
-
-	// Forward context directly so the request body remains intact.
-	res, err := h.authService.LoginFinish(c, username, sessionID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to authenticate: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, res)
 }

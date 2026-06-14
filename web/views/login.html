@@ -207,27 +207,24 @@
                 
                 try {
                     // Step 1: Begin Login
-                    const beginResponse = await fetch('/web/login/begin', {
+                    const beginResponse = await fetch(`/api/v1/auth/login/begin?username=${encodeURIComponent(this.username)}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            username: this.username
-                        })
+                        }
                     });
                     
                     const beginResult = await beginResponse.json();
-                    if (!beginResponse.ok) {
+                    if (!beginResponse.ok || !beginResult.isSuccess) {
                         throw new Error(beginResult.message || 'Failed to start authentication session.');
                     }
                     
                     // Step 2: Show native browser sign in dialog
                     this.state = 'authenticating';
                     
-                    const options = beginResult.options;
-                    const sessionID = beginResult.sessionId;
+                    const options = beginResult.items.options;
+                    const sessionID = beginResult.items.sessionId;
                     
                     const decodedOptions = prepareLoginOptions(options);
                     
@@ -250,7 +247,7 @@
                         }
                     };
                     
-                    const finishResponse = await fetch(`/web/login/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}`, {
+                    const finishResponse = await fetch(`/api/v1/auth/login/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -260,12 +257,12 @@
                     });
                     
                     const finishResult = await finishResponse.json();
-                    if (!finishResponse.ok) {
+                    if (!finishResponse.ok || !finishResult.isSuccess) {
                         throw new Error(finishResult.message || 'Verification of assertion failed.');
                     }
                     
                     // Step 4: Finished successfully, save user info
-                    this.user = finishResult.user;
+                    this.user = finishResult.items.user;
                     this.state = 'success';
                 } catch (err) {
                     console.error(err);

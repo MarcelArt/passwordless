@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/MarcelArt/passwordless/pkg/jsonb"
@@ -18,9 +17,7 @@ type User struct {
 }
 
 func (m *User) WebAuthnID() []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(m.ID)) // Converts ID 3 into a stable 8-byte sequence
-	return buf
+	return []byte(m.Username)
 }
 
 func (m *User) WebAuthnName() string {
