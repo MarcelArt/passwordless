@@ -35,17 +35,18 @@ func NewAuthHandler(service services.IAuthService) *AuthHandler {
 func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 	var input models.UserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, common.NewJSONResponse(err, "invalid json"))
+		_, res := common.ResultErr(err, "invalid json")
+		c.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	res, err := h.service.RegisterBegin(c.Request.Context(), input)
 	if err != nil {
-		c.JSON(common.StatusCodeFromError(err), common.NewJSONResponse(err, "failed to register"))
+		c.JSON(common.ResultErr(err, "invalid json"))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.NewJSONResponse(res, "registration started"))
+	c.JSON(http.StatusOK, common.ResultOk(res, "registration started"))
 }
 
 // RegisterFinish handles the completion of WebAuthn registration
@@ -72,16 +73,17 @@ func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 	}
 
 	if sessionID == "" || username == "" {
-		c.JSON(http.StatusBadRequest, common.NewJSONResponse(errors.New("missing session_id or username parameters"), "missing session_id or username parameters"))
+		_, res := common.ResultErr(errors.New("missing session_id or username parameters"), "")
+		c.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	if err := h.service.RegisterFinish(c, user, sessionID); err != nil {
-		c.JSON(http.StatusInternalServerError, common.NewJSONResponse(err, "failed to register"))
+		c.JSON(common.ResultErr(err, "failed to register"))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.NewJSONResponse(nil, "Registration finished"))
+	c.JSON(http.StatusOK, common.ResultOk[any](nil, "Registration finished"))
 }
 
 // LoginBegin handles the initiation of WebAuthn login
@@ -99,11 +101,11 @@ func (h *AuthHandler) LoginBegin(c *gin.Context) {
 
 	res, err := h.service.LoginBegin(c.Request.Context(), username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, common.NewJSONResponse(err, "failed to start login session"))
+		c.JSON(common.ResultErr(err, "failed to start login session"))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.NewJSONResponse(res, "Login started"))
+	c.JSON(http.StatusOK, common.ResultOk(res, "Login started"))
 }
 
 // LoginFinish handles the completion of WebAuthn login
@@ -124,15 +126,17 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 	username := c.Query("username")
 
 	if sessionID == "" || username == "" {
-		c.JSON(http.StatusBadRequest, common.NewJSONResponse(errors.New("missing session_id or username parameters"), "missing session_id or username parameters"))
+		_, res := common.ResultErr(errors.New("missing session_id or username parameters"), "")
+		c.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	res, err := h.service.LoginFinish(c, username, sessionID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, common.NewJSONResponse(err, "failed to login"))
+		_, res := common.ResultErr(err, "failed to login")
+		c.JSON(http.StatusUnauthorized, res)
 		return
 	}
 
-	c.JSON(http.StatusOK, common.NewJSONResponse(res, "Login finished"))
+	c.JSON(http.StatusOK, common.ResultOk(res, "Login finished"))
 }
