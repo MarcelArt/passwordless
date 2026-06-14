@@ -20,7 +20,7 @@ import (
 type IAuthService interface {
 	RegisterBegin(c context.Context, input models.UserInput) (models.BeginRegisterWebAuthn, error)
 	RegisterFinish(c *gin.Context, user models.UserInput, sessionID string) error
-	LoginBegin(c *gin.Context, username string) (models.BeginLoginWebAuthn, error)
+	LoginBegin(c context.Context, username string) (models.BeginLoginWebAuthn, error)
 	LoginFinish(c *gin.Context, username string, sessionID string) (models.LoginResponse, error)
 }
 
@@ -108,7 +108,7 @@ func (s *AuthService) RegisterFinish(c *gin.Context, user models.UserInput, sess
 	return nil
 }
 
-func (s *AuthService) LoginBegin(c *gin.Context, username string) (models.BeginLoginWebAuthn, error) {
+func (s *AuthService) LoginBegin(c context.Context, username string) (models.BeginLoginWebAuthn, error) {
 	var res models.BeginLoginWebAuthn
 	user, err := s.uRepo.GetByUsernameOrEmail(c, username)
 	if err != nil {

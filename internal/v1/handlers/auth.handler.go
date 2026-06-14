@@ -39,7 +39,7 @@ func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 		return
 	}
 
-	res, err := h.service.RegisterBegin(c, input)
+	res, err := h.service.RegisterBegin(c.Request.Context(), input)
 	if err != nil {
 		c.JSON(common.StatusCodeFromError(err), common.NewJSONResponse(err, "failed to register"))
 		return
@@ -97,7 +97,7 @@ func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 func (h *AuthHandler) LoginBegin(c *gin.Context) {
 	username := c.Query("username")
 
-	res, err := h.service.LoginBegin(c, username)
+	res, err := h.service.LoginBegin(c.Request.Context(), username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, common.NewJSONResponse(err, "failed to start login session"))
 		return
