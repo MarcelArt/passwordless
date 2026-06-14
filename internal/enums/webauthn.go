@@ -1,0 +1,3 @@
+package enums
+
+const RPOriginAPK = "FA:DA:35:AC:D5:87:F6:2F:44:20:06:A1:16:97:DB:D8:74:10:17:0F:C1:68:44:F3:0E:E4:FB:CE:6B:55:63:EB"

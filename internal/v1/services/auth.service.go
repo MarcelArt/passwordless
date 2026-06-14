@@ -30,10 +30,15 @@ type AuthService struct {
 }
 
 func NewAuthService(uRepo repositories.IUserRepo) (*AuthService, error) {
+	rpAPK := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(enums.RPOriginAPK))
+
 	webAuthnHandler, err := webauthn.New(&webauthn.Config{
 		RPDisplayName: configs.Env.RPDisplayName,
 		RPID:          configs.Env.RPID, // Must match your domain
-		RPOrigins:     []string{configs.Env.RPOrigins},
+		RPOrigins: []string{
+			configs.Env.RPOrigins,
+			fmt.Sprintf("android:apk-key-hash:%s", rpAPK),
+		},
 	})
 	if err != nil {
 		return nil, err
