@@ -63,13 +63,6 @@ func (s *AuthService) RegisterBegin(c context.Context, input models.UserInput) (
 	}
 	if user.ID != 0 {
 		return res, enums.ErrAlreadyRegsitered
-
-		// id, err := s.uRepo.Create(c, input)
-		// if err != nil {
-		// 	return res, fmt.Errorf("error creating user: %w", err)
-		// }
-
-		// user.ID = id
 	}
 	user.Email = input.Email
 	user.Username = input.Username
