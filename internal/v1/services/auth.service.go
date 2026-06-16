@@ -119,6 +119,7 @@ func (s *AuthService) LoginBegin(c context.Context, username string) (models.Beg
 	if err != nil {
 		return res, fmt.Errorf("failed starting login session: %w", err)
 	}
+	options.Response.AllowedCredentials = nil
 
 	sessionID := base64.StdEncoding.EncodeToString([]byte(sessionData.Challenge))
 	s.sessionDB[sessionID] = sessionData
