@@ -15,7 +15,7 @@ type UserInput struct {
 	Username    string                             `gorm:"not null;unique" json:"username"`
 	Email       string                             `gorm:"not null;unique" json:"email"`
 	Password    string                             `gorm:"not null" json:"password"`
-	Credentials jsonb.JSONB[[]webauthn.Credential] `json:"credentials"`
+	Credentials jsonb.JSONB[[]webauthn.Credential] `json:"-"`
 }
 
 func (m *UserInput) WebAuthnID() []byte {

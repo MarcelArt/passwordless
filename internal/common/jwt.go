@@ -7,6 +7,7 @@ import (
 
 	"github.com/MarcelArt/passwordless/internal/configs"
 	"github.com/MarcelArt/passwordless/internal/enums"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -89,4 +90,14 @@ func ParseClaimsToStringSlice(v any) ([]string, error) {
 
 	return result, nil
 
+}
+
+func MustGet[T any](c *gin.Context, key string) (T, error) {
+	var t T
+	t, ok := c.MustGet(key).(T)
+	if !ok {
+		return t, fmt.Errorf("value for key %s is not of type %T", key, t)
+	}
+
+	return t, nil
 }

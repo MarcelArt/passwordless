@@ -1,0 +1,260 @@
+package handlers
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/MarcelArt/passwordless/internal/common"
+	"github.com/MarcelArt/passwordless/internal/entities"
+	"github.com/MarcelArt/passwordless/internal/v1/models"
+	"github.com/MarcelArt/passwordless/internal/v1/services"
+	"github.com/gin-gonic/gin"
+	_ "github.com/morkid/paginate"
+)
+
+type UserHandler struct {
+	service services.IUserService
+}
+
+var _ = entities.User{}
+
+func NewUserHandler(service services.IUserService) *UserHandler {
+	return &UserHandler{
+		service: service,
+	}
+}
+
+// Create godoc
+// @Summary      Create a new user
+// @Description  Create a new user with the provided details
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        user  body      models.UserInput  true  "User details"
+// @Success      201   {object}  common.Result[uint]
+// @Failure      400   {object}  common.Result[string]
+// @Failure      500   {object}  common.Result[string]
+// @Router       /v1/users [post]
+func (h *UserHandler) Create(c *gin.Context) {
+	var user models.UserInput
+	if err := c.ShouldBindJSON(&user); err != nil {
+		_, res := common.ResultErr(err, "failed parsing json")
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	id, err := h.service.Create(c, user)
+	if err != nil {
+		c.JSON(common.ResultErr(err, "failed creating user"))
+		return
+	}
+
+	c.JSON(http.StatusCreated, common.ResultOk(id, "User created"))
+}
+
+// Read godoc
+// @Summary      List users
+// @Description  Get a paginated list of users
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        page     query     int     false  "Page"
+// @Param        size     query     int     false  "Size"
+// @Param        sort     query     string  false  "Sort"
+// @Param        filters  query     string  false  "Filter"
+// @Success      200      {object}  paginate.Page{items=[]models.UserPage}
+// @Failure      401      {object}  common.Result[string]
+// @Failure      500      {object}  common.Result[string]
+// @Security     ApiKeyAuth
+// @Router       /v1/users [get]
+func (h *UserHandler) Read(c *gin.Context) {
+	users, _ := h.service.Read(c)
+
+	c.JSON(http.StatusOK, users)
+}
+
+// Update godoc
+// @Summary      Update user
+// @Description  Update an existing user's details
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string            true  "User ID"
+// @Param        user  body      models.UserInput  true  "Updated user details"
+// @Success      200   {object}  common.Result[any]
+// @Failure      400   {object}  common.Result[string]
+// @Failure      401   {object}  common.Result[string]
+// @Failure      500   {object}  common.Result[string]
+// @Security     ApiKeyAuth
+// @Router       /v1/users/{id} [put]
+func (h *UserHandler) Update(c *gin.Context) {
+	id := c.Param("id")
+
+	var user models.UserInput
+	if err := c.ShouldBindJSON(&user); err != nil {
+		_, res := common.ResultErr(err, "failed parsing json")
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	if err := h.service.Update(c, id, user); err != nil {
+		c.JSON(common.ResultErr(err, "failed updating user"))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk[any](nil, "User updated"))
+}
+
+// Delete godoc
+// @Summary      Delete user
+// @Description  Delete a user by ID
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string  true  "User ID"
+// @Success      200  {object}  common.Result[any]
+// @Failure      401  {object}  common.Result[string]
+// @Failure      500  {object}  common.Result[string]
+// @Security     ApiKeyAuth
+// @Router       /v1/users/{id} [delete]
+func (h *UserHandler) Delete(c *gin.Context) {
+	if err := h.service.Delete(c, c.Param("id")); err != nil {
+		c.JSON(common.ResultErr(err, "failed deleting user"))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk[any](nil, "User deleted"))
+}
+
+// GetByID godoc
+// @Summary      Get user by ID
+// @Description  Get detailed information about a user by their ID
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string  true  "User ID"
+// @Success      200  {object}  common.Result[entities.User]
+// @Failure      401  {object}  common.Result[string]
+// @Failure      500  {object}  common.Result[string]
+// @Security     ApiKeyAuth
+// @Router       /v1/users/{id} [get]
+func (h *UserHandler) GetByID(c *gin.Context) {
+	user, err := h.service.GetByID(c, c.Param("id"))
+	if err != nil {
+		c.JSON(common.ResultErr(err, "failed getting user"))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk(user, "User found"))
+}
+
+// Login godoc
+// @Summary      Login user
+// @Description  Authenticate a user with username/email and password, returning tokens
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        credentials  body      models.LoginInput  true  "Login credentials"
+// @Success      200          {object}  common.Result[models.LoginResponse]
+// @Failure      400          {object}  common.Result[string]
+// @Failure      401          {object}  common.Result[string]
+// @Router       /v1/users/login [post]
+func (h *UserHandler) Login(c *gin.Context) {
+	var input models.LoginInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		_, res := common.ResultErr(err, "failed parsing json")
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	res, err := h.service.Login(c, input)
+	if err != nil {
+		_, res := common.ResultErr(err, "invalid username or password")
+		c.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk(res, "User logged in"))
+}
+
+// Refresh godoc
+// @Summary      Refresh token
+// @Description  Regenerate access and refresh token pair using the refresh token from header
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        X-Refresh-Token  header    string  true  "Refresh token"
+// @Success      200              {object}  common.Result[models.LoginResponse]
+// @Failure      400              {object}  common.Result[string]
+// @Failure      401              {object}  common.Result[string]
+// @Failure      500              {object}  common.Result[string]
+// @Router       /v1/users/refresh [post]
+func (h *UserHandler) Refresh(c *gin.Context) {
+	id := c.MustGet("userId")
+
+	isRemember, err := common.MustGet[bool](c, "isRemember")
+	if err != nil {
+		_, res := common.ResultErr(fmt.Errorf("missing isRemember claim"), "invalid refresh token")
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	res, err := h.service.RegenerateTokenPair(c, id, isRemember)
+	if err != nil {
+		c.JSON(common.ResultErr(err, "failed generating tokens"))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk(res, "Authenticated"))
+}
+
+// AssignRoles godoc
+// @Summary      Assign roles to user
+// @Description  Assign a list of role IDs to a user by user ID
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id       path      int     true  "User ID"
+// @Param        roleIDs  body      []uint  true  "List of Role IDs"
+// @Success      200      {object}  common.JSONResponse
+// @Failure      400      {object}  common.JSONResponse
+// @Failure      401      {object}  common.JSONResponse
+// @Failure      500      {object}  common.JSONResponse
+// @Security     ApiKeyAuth
+// @Router       /v1/users/{id}/roles [patch]
+// func (h *UserHandler) AssignRoles(c *gin.Context) error {
+// 	id := http.Params[uint](c, "id")
+// 	var roleIDs []uint
+// 	if err := c.Bind().JSON(&roleIDs); err != nil {
+// 		return c.Status(http.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
+// 	}
+
+// 	if err := h.service.AssignRoles(c, id, roleIDs); err != nil {
+// 		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed assigning roles"))
+// 	}
+
+// 	return c.Status(http.StatusOK).JSON(common.NewJSONResponse(nil, "Roles assigned"))
+// }
+
+// GetPermissions godoc
+// @Summary      Get user permissions
+// @Description  Get list of permissions for the authenticated user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  common.JSONResponse{items=[]string}
+// @Failure      401  {object}  common.JSONResponse
+// @Failure      500  {object}  common.JSONResponse
+// @Security     ApiKeyAuth
+// @Router       /v1/users/permissions [get]
+// func (h *UserHandler) GetPermissions(c *gin.Context) error {
+// 	claims := common.FiberCtxToClaims(c)
+// 	id := claims["userId"]
+
+// 	permissions, err := h.service.GetPermissions(id)
+// 	if err != nil {
+// 		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
+// 	}
+
+// 	return c.Status(http.StatusOK).JSON(common.NewJSONResponse(permissions, "Permissions found"))
+// }

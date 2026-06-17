@@ -1,0 +1,80 @@
+package middlewares
+
+import (
+	"errors"
+	"net/http"
+
+	"github.com/MarcelArt/passwordless/internal/common"
+	"github.com/MarcelArt/passwordless/internal/configs"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+)
+
+type AuthMiddleware struct {
+	jwtSecret []byte
+}
+
+func NewAuthMiddleware() *AuthMiddleware {
+	return &AuthMiddleware{
+		jwtSecret: []byte(configs.Env.JwtSecret),
+	}
+}
+
+func (m *AuthMiddleware) Authn(c *gin.Context) {
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		_, res := common.ResultErr(errors.New("missing authorization token"), "")
+		c.JSON(http.StatusUnauthorized, res)
+		c.Abort()
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+		tokenString = tokenString[7:]
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		return m.jwtSecret, nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
+	if err != nil || !token.Valid {
+		_, res := common.ResultErr(errors.New("invalid token"), "")
+		c.JSON(http.StatusUnauthorized, res)
+		c.Abort()
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		c.Set("userId", claims["userId"])
+		c.Set("permissions", claims["permissions"])
+		c.Next()
+	}
+}
+
+func (m *AuthMiddleware) Refresh(c *gin.Context) {
+	refreshToken := c.GetHeader("X-Refresh-Token")
+	if refreshToken == "" {
+		_, res := common.ResultErr(errors.New("missing refresh token"), "")
+		c.JSON(http.StatusBadRequest, res)
+		c.Abort()
+		return
+	}
+
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (any, error) {
+		return m.jwtSecret, nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
+	if err != nil || !token.Valid {
+		_, res := common.ResultErr(errors.New("invalid refresh token"), "")
+		c.JSON(http.StatusUnauthorized, res)
+		c.Abort()
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		c.Set("userId", claims["userId"])
+		c.Set("isRemember", claims["isRemember"])
+		c.Next()
+	}
+}

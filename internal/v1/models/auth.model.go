@@ -1,6 +1,8 @@
 package models
 
-import "github.com/go-webauthn/webauthn/protocol"
+import (
+	"github.com/go-webauthn/webauthn/protocol"
+)
 
 type BeginRegisterWebAuthn struct {
 	Options   *protocol.CredentialCreation `json:"options"`

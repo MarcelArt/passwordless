@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/MarcelArt/passwordless/internal/common"
@@ -11,20 +12,18 @@ import (
 	"github.com/alexedwards/argon2id"
 	"github.com/gin-gonic/gin"
 	"github.com/morkid/paginate"
-	"gorm.io/gorm"
 )
 
 type IUserService interface {
 	common.IBaseCrudService[entities.User, models.UserInput, models.UserPage]
-	// Login(c *gin.Context, input models.LoginInput) (models.LoginResponse, error)
-	// RegenerateTokenPair(c *gin.Context, userID any, isRemember bool) (models.LoginResponse, error)
+	Login(c *gin.Context, input models.LoginInput) (models.LoginResponse, error)
+	RegenerateTokenPair(c *gin.Context, userID any, isRemember bool) (models.LoginResponse, error)
 	// AssignRoles(c context.Context, userID uint, newRoleIDs []uint) error
 	GetPermissions(userID any) ([]string, error)
 	GetRoles(id any) ([]models.UserRole, error)
 }
 
 type UserService struct {
-	db   *gorm.DB
 	repo repositories.IUserRepo
 	// urRepo repositories.IUserRoleRepo
 }
@@ -32,12 +31,10 @@ type UserService struct {
 var _ IUserService = &UserService{}
 
 func NewUserService(
-	db *gorm.DB,
 	repo repositories.IUserRepo,
 	// urRepo repositories.IUserRoleRepo,
 ) *UserService {
 	return &UserService{
-		db:   db,
 		repo: repo,
 		// urRepo: urRepo,
 	}
@@ -77,41 +74,41 @@ func (s *UserService) GetByID(c context.Context, id any) (entities.User, error) 
 	return s.repo.GetByID(c, id)
 }
 
-// func (s *UserService) Login(c *gin.Context, input models.LoginInput) (models.LoginResponse, error) {
-// 	var res models.LoginResponse
-// 	user, err := s.repo.GetByUsernameOrEmail(c, input.Username)
-// 	if err != nil {
-// 		return res, err
-// 	}
+func (s *UserService) Login(c *gin.Context, input models.LoginInput) (models.LoginResponse, error) {
+	var res models.LoginResponse
+	user, err := s.repo.GetByUsernameOrEmail(c, input.Username)
+	if err != nil {
+		return res, err
+	}
 
-// 	if ok, _ := argon2id.ComparePasswordAndHash(input.Password, user.Password); !ok {
-// 		return res, errors.New("unauthorized")
-// 	}
+	if ok, _ := argon2id.ComparePasswordAndHash(input.Password, user.Password); !ok {
+		return res, errors.New("unauthorized")
+	}
 
-// 	res, err = s.generateTokenPair(user, input.IsRemember, c.BaseURL())
-// 	if err != nil {
-// 		return res, fmt.Errorf("failed to generate token pair: %w", err)
-// 	}
-// 	common.GenerateCookies(c, res.AccessToken, res.RefreshToken, input.IsRemember)
+	res, err = s.generateTokenPair(user, input.IsRemember, c.Request.Host)
+	if err != nil {
+		return res, fmt.Errorf("failed to generate token pair: %w", err)
+	}
+	common.GenerateCookies(c, res.AccessToken, res.RefreshToken, input.IsRemember)
 
-// 	return res, nil
-// }
+	return res, nil
+}
 
-// func (s *UserService) RegenerateTokenPair(c *gin.Context, userID any, isRemember bool) (models.LoginResponse, error) {
-// 	var res models.LoginResponse
-// 	user, err := s.repo.GetByID(c, userID)
-// 	if err != nil {
-// 		return res, err
-// 	}
+func (s *UserService) RegenerateTokenPair(c *gin.Context, userID any, isRemember bool) (models.LoginResponse, error) {
+	var res models.LoginResponse
+	user, err := s.repo.GetByID(c, userID)
+	if err != nil {
+		return res, err
+	}
 
-// 	res, err = s.generateTokenPair(user, isRemember, c.BaseURL())
-// 	if err != nil {
-// 		return res, fmt.Errorf("failed to generate token pair: %w", err)
-// 	}
-// 	common.GenerateCookies(c, res.AccessToken, res.RefreshToken, isRemember)
+	res, err = s.generateTokenPair(user, isRemember, c.Request.Host)
+	if err != nil {
+		return res, fmt.Errorf("failed to generate token pair: %w", err)
+	}
+	common.GenerateCookies(c, res.AccessToken, res.RefreshToken, isRemember)
 
-// 	return res, nil
-// }
+	return res, nil
+}
 
 // func (s *UserService) AssignRoles(c context.Context, userID uint, newRoleIDs []uint) error {
 // 	tx := s.db.Begin()
@@ -141,12 +138,12 @@ func (s *UserService) generateTokenPair(user entities.User, isRemember bool, iss
 		"aud":    iss,
 	}
 
-	permissions, err := s.repo.GetPermissions(user.ID)
-	if err != nil {
-		return res, fmt.Errorf("failed retrieving permissions: %w", err)
-	}
+	// permissions, err := s.repo.GetPermissions(user.ID)
+	// if err != nil {
+	// 	return res, fmt.Errorf("failed retrieving permissions: %w", err)
+	// }
 
-	at, rt, err := common.GenerateJWTPair(claims, permissions, isRemember)
+	at, rt, err := common.GenerateJWTPair(claims, nil, isRemember)
 	if err != nil {
 		return res, fmt.Errorf("failed generating token pair: %w", err)
 	}

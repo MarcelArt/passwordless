@@ -1,33 +1,39 @@
 package common
 
-// func GenerateCookies(c fiber.Ctx, at string, rt string, isRemember bool) {
-// 	atExp := time.Minute * 5
-// 	rtExp := enums.Day
-// 	if isRemember {
-// 		rtExp = enums.Month
-// 	}
+import (
+	"net/http"
+	"time"
 
-// 	isProd := configs.Env.ServerENV == "prod"
+	"github.com/MarcelArt/passwordless/internal/configs"
+	"github.com/MarcelArt/passwordless/internal/enums"
+	"github.com/gin-gonic/gin"
+)
 
-// 	cookie := fiber.Cookie{
-// 		Name:     "at",
-// 		Value:    at,
-// 		HTTPOnly: true,
-// 		Secure:   isProd,
-// 		SameSite: "Strict",
-// 		MaxAge:   int(atExp),
-// 		Path:     "/",
-// 	}
-// 	c.Cookie(&cookie)
+func GenerateCookies(c *gin.Context, at string, rt string, isRemember bool) {
+	atExp := time.Minute * 5
+	rtExp := enums.Day
+	if isRemember {
+		rtExp = enums.Month
+	}
 
-// 	cookie = fiber.Cookie{
-// 		Name:     "rt",
-// 		Value:    rt,
-// 		HTTPOnly: true,
-// 		Secure:   isProd,
-// 		SameSite: "Strict",
-// 		MaxAge:   int(rtExp),
-// 		Path:     "/",
-// 	}
-// 	c.Cookie(&cookie)
-// }
+	isProd := configs.Env.ServerENV == "prod"
+
+	c.SetCookieData(&http.Cookie{
+		Name:     "at",
+		Value:    at,
+		HttpOnly: true,
+		Secure:   isProd,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(atExp),
+		Path:     "/",
+	})
+	c.SetCookieData(&http.Cookie{
+		Name:     "rt",
+		Value:    rt,
+		HttpOnly: true,
+		Secure:   isProd,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(rtExp),
+		Path:     "/",
+	})
+}
