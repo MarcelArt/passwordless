@@ -140,3 +140,21 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 
 	c.JSON(http.StatusOK, common.ResultOk(res, "Login finished"))
 }
+
+// QrStart handles the initiation of QR code authentication
+// @Summary      Start QR Authentication Session
+// @Description  Initiates a QR code authentication session and returns the QR code image.
+// @Tags         Auth
+// @Produce      image/png
+// @Success      200  {file}    string  "QR Code image in PNG format"
+// @Failure      500  {object}  common.Result[string]  "Internal server error"
+// @Router       /v1/auth/qr/start [post]
+func (h *AuthHandler) QrStart(c *gin.Context) {
+	_, png, err := h.service.QrStart()
+	if err != nil {
+		c.JSON(common.ResultErr(err, "failed generating qr"))
+		return
+	}
+
+	c.Data(http.StatusOK, "image/png", png)
+}

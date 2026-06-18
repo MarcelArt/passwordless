@@ -25,6 +25,7 @@ type IAuthService interface {
 	RegisterFinish(c *gin.Context, user models.UserInput, sessionID string) error
 	LoginBegin(c context.Context, username string) (models.BeginLoginWebAuthn, error)
 	LoginFinish(c *gin.Context, username string, sessionID string) (models.LoginResponse, error)
+	QrStart() (string, []byte, error)
 }
 
 type AuthService struct {

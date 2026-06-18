@@ -24,4 +24,5 @@ func setupAuthRoutes(v1 *gin.RouterGroup) {
 	auth.POST("/register/finish", h.RegisterFinish)
 	auth.POST("/login/begin", h.LoginBegin)
 	auth.POST("/login/finish", h.LoginFinish)
+	auth.POST("/qr/start", h.QrStart)
 }
