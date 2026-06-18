@@ -32,19 +32,25 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 		db: db,
 		pageQuery: `
 			SELECT 
-				u.id as id, 
-				u.username as username, 
-				u.email as email,
-				json_agg(r."name") as roles
-			FROM users u  
-			left join user_roles ur on u.id = ur.user_id and ur.deleted_at isnull
-			left join roles r on ur.role_id = r.id  and r.deleted_at isnull
+				*
+			FROM users u
 			where u.deleted_at isnull
-			group by
-				u.id,
-				u.username,
-				u.email
 		`,
+		// pageQuery: `
+		// 	SELECT
+		// 		u.id as id,
+		// 		u.username as username,
+		// 		u.email as email,
+		// 		json_agg(r."name") as roles
+		// 	FROM users u
+		// 	left join user_roles ur on u.id = ur.user_id and ur.deleted_at isnull
+		// 	left join roles r on ur.role_id = r.id  and r.deleted_at isnull
+		// 	where u.deleted_at isnull
+		// 	group by
+		// 		u.id,
+		// 		u.username,
+		// 		u.email
+		// `,
 	}
 }
 
