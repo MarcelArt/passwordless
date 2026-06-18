@@ -85,7 +85,7 @@ func (s *UserService) Login(c *gin.Context, input models.LoginInput) (models.Log
 		return res, errors.New("unauthorized")
 	}
 
-	res, err = s.generateTokenPair(user, input.IsRemember, c.Request.Host)
+	res, err = s.GenerateTokenPair(user, input.IsRemember, c.Request.Host)
 	if err != nil {
 		return res, fmt.Errorf("failed to generate token pair: %w", err)
 	}
@@ -101,7 +101,7 @@ func (s *UserService) RegenerateTokenPair(c *gin.Context, userID any, isRemember
 		return res, err
 	}
 
-	res, err = s.generateTokenPair(user, isRemember, c.Request.Host)
+	res, err = s.GenerateTokenPair(user, isRemember, c.Request.Host)
 	if err != nil {
 		return res, fmt.Errorf("failed to generate token pair: %w", err)
 	}
@@ -129,7 +129,7 @@ func (s *UserService) GetPermissions(userID any) ([]string, error) {
 	return s.repo.GetPermissions(userID)
 }
 
-func (s *UserService) generateTokenPair(user entities.User, isRemember bool, iss string) (models.LoginResponse, error) {
+func (s *UserService) GenerateTokenPair(user entities.User, isRemember bool, iss string) (models.LoginResponse, error) {
 	var res models.LoginResponse
 	claims := map[string]any{
 		"sub":    user.Username,

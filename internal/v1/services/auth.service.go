@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/MarcelArt/passwordless/internal/common"
 	"github.com/MarcelArt/passwordless/internal/configs"
@@ -14,6 +15,8 @@ import (
 	"github.com/MarcelArt/passwordless/pkg/jsonb"
 	"github.com/gin-gonic/gin"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/google/uuid"
+	"github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
 )
 
@@ -28,6 +31,7 @@ type AuthService struct {
 	uRepo           repositories.IUserRepo
 	webAuthnHandler *webauthn.WebAuthn
 	sessionDB       map[string]*webauthn.SessionData
+	qrSession       map[string]*models.QrSession
 }
 
 func NewAuthService(uRepo repositories.IUserRepo) (*AuthService, error) {
@@ -52,6 +56,7 @@ func NewAuthService(uRepo repositories.IUserRepo) (*AuthService, error) {
 		uRepo:           uRepo,
 		webAuthnHandler: webAuthnHandler,
 		sessionDB:       make(map[string]*webauthn.SessionData),
+		qrSession:       make(map[string]*models.QrSession),
 	}, nil
 }
 
@@ -151,4 +156,34 @@ func (s *AuthService) LoginFinish(c *gin.Context, username string, sessionID str
 	delete(s.sessionDB, sessionID)
 
 	return res, nil
+}
+
+func (s *AuthService) QrStart() (string, []byte, error) {
+	today := time.Now()
+	id, err := uuid.NewV7()
+	if err != nil {
+		return "", nil, fmt.Errorf("failed generating uuid: %w", err)
+	}
+
+	sID := id.String()
+	exp := today.Add(5 * time.Minute)
+	s.qrSession[sID] = &models.QrSession{Exp: exp}
+
+	png, err := qrcode.Encode(sID, qrcode.Medium, 256)
+	return sID, png, err
+}
+
+func (s *AuthService) QrApprove(sessionID string, userID uint) bool {
+	session, ok := s.qrSession[sessionID]
+	if !ok {
+		return false
+	}
+
+	today := time.Now()
+	isApproved := today.Before(session.Exp)
+	if isApproved {
+		session.UserID = userID
+	}
+
+	return isApproved
 }
