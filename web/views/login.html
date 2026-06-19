@@ -1,280 +1,232 @@
 {{ define "content" }}
-<div class="glass-card" x-data="authLogin()">
-    <!-- Step 1: Input Fields -->
-    <div x-show="state === 'input'">
-        <h1>Welcome Back</h1>
-        <p class="subtitle">Sign in securely using passwordless passkeys</p>
+<div class="glass-card" x-data="qrLogin()">
+    <!-- Step 1: Polling / Scanning -->
+    <div x-show="state === 'polling'" class="text-center">
+        <h1>Scan to Sign In</h1>
+        <p class="subtitle">Open your mobile app and scan this QR code to login instantly</p>
 
-        <form @submit.prevent="submitLogin">
-            <div class="form-group">
-                <label class="form-label" for="username">Username or Email</label>
-                <div class="input-wrapper">
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        class="form-input" 
-                        x-model="username" 
-                        placeholder="john_doe"
-                        required
-                    >
-                </div>
+        <!-- QR Code Display Area with a premium glowing scanner container -->
+        <div class="qr-container-wrapper">
+            <div class="qr-scanner-frame">
+                <!-- Laser scanner animation line -->
+                <div class="laser-line"></div>
+                <img src="data:image/png;base64,{{ .QrCode }}" alt="Login QR Code" class="qr-image" />
             </div>
+        </div>
 
-            <button type="submit" class="btn btn-primary mt-6">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Sign In with Passkey
-            </button>
-        </form>
+        <div class="flex-center status-indicator mt-6">
+            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="15"></circle>
+            </svg>
+            <span class="status-text">Waiting for mobile approval...</span>
+        </div>
 
-        <p class="text-center mt-4" style="font-size: 0.9rem; color: var(--text-muted);">
-            Don't have an account? <a href="/register" style="color: var(--primary); text-decoration: none; font-weight: 500;">Register here</a>
+        <p class="text-center mt-6" style="font-size: 0.9rem; color: var(--text-muted);">
+            Don't have an account? <a href="/register" style="color: var(--primary); text-decoration: none; font-weight: 500; border-bottom: 1px dashed var(--primary); padding-bottom: 2px;">Register here</a>
         </p>
     </div>
 
-    <!-- Step 2: Connecting / Loading -->
-    <div x-show="state === 'connecting'" class="text-center" style="display: none;">
-        <div class="flex-center" style="height: 120px;">
-            <svg class="pulse-secondary" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.5" style="border-radius: 50%; padding: 16px; background: rgba(0, 245, 212, 0.05);">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-            </svg>
-        </div>
-        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600;">Contacting Server...</h2>
-        <p class="subtitle mt-4">Initializing login session and generating assertion challenge.</p>
-    </div>
-
-    <!-- Step 3: Authenticating (Prompting security key / FaceID) -->
-    <div x-show="state === 'authenticating'" class="text-center" style="display: none;">
-        <div class="flex-center" style="height: 120px;">
-            <div class="pulse-secondary" style="border-radius: 50%; padding: 8px; background: rgba(0, 245, 212, 0.1);">
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
-                    <path d="M12 8v4l3 3"></path>
-                </svg>
-            </div>
-        </div>
-        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600; color: var(--secondary);">Verify Credential</h2>
-        <p class="subtitle mt-4">Place your fingerprint, face, or security key to assert identity and sign in.</p>
-    </div>
-
-    <!-- Step 4: Submitting Verification -->
-    <div x-show="state === 'submitting'" class="text-center" style="display: none;">
-        <div class="flex-center" style="height: 120px;">
-            <svg class="pulse-secondary" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="border-radius: 50%; padding: 16px; background: rgba(157, 78, 221, 0.05);">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-        </div>
-        <h2 class="mt-4" style="font-size: 1.5rem; font-weight: 600;">Verifying Signature...</h2>
-        <p class="subtitle mt-4">Verifying device assertion signature on the server.</p>
-    </div>
-
-    <!-- Step 5: Success (Display Logged In User) -->
+    <!-- Step 2: Success -->
     <div x-show="state === 'success'" class="text-center" style="display: none;">
-        <div class="flex-center" style="height: 100px;">
-            <div style="border-radius: 50%; padding: 16px; background: rgba(0, 245, 212, 0.1); border: 2px solid var(--secondary);">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <div class="flex-center" style="height: 120px;">
+            <div class="success-glow" style="border-radius: 50%; padding: 24px; background: rgba(0, 245, 212, 0.1); border: 2px solid var(--secondary);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
             </div>
         </div>
-        <h2 class="mt-4" style="font-size: 1.8rem; font-weight: 700; color: #fff;">Authenticated</h2>
-        <p class="subtitle mt-2" style="margin-bottom: 24px;">Successfully signed in with passwordless WebAuthn.</p>
-        
-        <!-- User Profile Card -->
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 24px;">
-            <div class="flex-center" style="justify-content: flex-start; gap: 16px; margin-bottom: 16px;">
-                <img :src="'https://ui-avatars.com/api/?background=9d4edd&color=fff&name=' + encodeURIComponent(user.username)" style="width: 48px; height: 48px; border-radius: 50%;" />
-                <div>
-                    <div style="font-weight: 600; font-size: 1.1rem; color: #fff;" x-text="user.username"></div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted);" x-text="user.email"></div>
-                </div>
-            </div>
-            <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; font-size: 0.85rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="color: var(--text-muted);">User ID:</span>
-                    <span style="font-family: monospace; color: #fff;" x-text="user.ID"></span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--text-muted);">Auth Type:</span>
-                    <span style="color: var(--secondary); font-weight: 500;">FIDO2 / WebAuthn</span>
-                </div>
-            </div>
-        </div>
-
-        <button @click="logout()" class="btn btn-primary">
-            Sign Out
-        </button>
+        <h2 class="mt-4" style="font-size: 1.8rem; font-weight: 700; color: #fff; background: linear-gradient(135deg, #fff 0%, var(--secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Access Approved</h2>
+        <p class="subtitle mt-2">Successfully authenticated. Redirecting you to your profile...</p>
     </div>
 
-    <!-- Step 6: Error -->
-    <div x-show="state === 'error'" class="text-center" style="display: none;">
+    <!-- Step 3: Expired / Error -->
+    <div x-show="state === 'expired'" class="text-center" style="display: none;">
         <div class="flex-center" style="height: 120px;">
-            <div style="border-radius: 50%; padding: 20px; background: rgba(255, 92, 138, 0.1); border: 2px solid var(--text-error);">
-                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--text-error)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div style="border-radius: 50%; padding: 24px; background: rgba(255, 92, 138, 0.1); border: 2px solid var(--text-error);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-error)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
             </div>
         </div>
-        <h2 class="mt-6" style="font-size: 1.6rem; font-weight: 700; color: var(--text-error);">Authentication Failed</h2>
-        <p class="subtitle mt-4" x-text="errorMessage">An error occurred during passkey sign in.</p>
+        <h2 class="mt-4" style="font-size: 1.6rem; font-weight: 700; color: var(--text-error);">QR Code Expired</h2>
+        <p class="subtitle mt-2">The security session has timed out. Please refresh to generate a new QR code.</p>
         
-        <button @click="state = 'input'" class="btn btn-primary mt-6">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2.5 2v6h6M21.5 22v-6h-6"></path>
-                <path d="M22 11.5A10 10 0 0 0 9.5 3.5"></path>
-                <path d="M2 12.5A10 10 0 0 0 14.5 20.5"></path>
+        <button @click="refreshQR()" class="btn btn-primary mt-6">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
             </svg>
-            Try Again
+            Refresh QR Code
         </button>
     </div>
 </div>
 
+<style>
+    /* Premium QR Scanner styling */
+    .qr-container-wrapper {
+        display: flex;
+        justify-content: center;
+        margin: 32px 0;
+    }
+
+    .qr-scanner-frame {
+        position: relative;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 2px solid var(--card-border);
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(157, 78, 221, 0.15);
+        overflow: hidden;
+        width: max-content;
+        transition: all 0.4s ease;
+    }
+
+    .qr-scanner-frame:hover {
+        border-color: var(--primary);
+        box-shadow: 0 0 40px rgba(157, 78, 221, 0.3);
+    }
+
+    .qr-image {
+        display: block;
+        width: 200px;
+        height: 200px;
+        border-radius: 8px;
+        filter: invert(1) brightness(0.9); /* Makes the QR stand out on dark background if necessary, or keep original */
+        mix-blend-mode: screen;
+    }
+
+    /* Laser line sweep animation */
+    .laser-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--secondary), transparent);
+        box-shadow: 0 0 8px var(--secondary);
+        z-index: 10;
+        animation: laser-sweep 3s infinite linear;
+    }
+
+    @keyframes laser-sweep {
+        0% {
+            top: 0%;
+        }
+        50% {
+            top: 100%;
+        }
+        100% {
+            top: 0%;
+        }
+    }
+
+    /* Status Spinner */
+    .status-indicator {
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--card-border);
+        padding: 10px 20px;
+        border-radius: 50px;
+        display: inline-flex;
+    }
+
+    .status-text {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .spinner {
+        animation: spin 1.2s infinite linear;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .success-glow {
+        animation: pulse-success 2s infinite;
+    }
+
+    @keyframes pulse-success {
+        0% {
+            box-shadow: 0 0 0 0 rgba(0, 245, 212, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 15px rgba(0, 245, 212, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(0, 245, 212, 0);
+        }
+    }
+</style>
+
 <script>
-    // Utility functions to convert buffers to and from base64url strings
-    function arrayBufferToBase64URL(buffer) {
-        let binary = '';
-        const bytes = new Uint8Array(buffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = window.btoa(binary);
-        return base64
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    }
-
-    function base64URLToArrayBuffer(base64url) {
-        let base64 = base64url
-            .replace(/-/g, '+')
-            .replace(/_/g, '/');
-        while (base64.length % 4) {
-            base64 += '=';
-        }
-        const binary = window.atob(base64);
-        const len = binary.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes.buffer;
-    }
-
-    function prepareLoginOptions(options) {
-        // Decode challenge
-        if (options.publicKey.challenge) {
-            options.publicKey.challenge = base64URLToArrayBuffer(options.publicKey.challenge);
-        }
-        // Decode allowCredentials IDs
-        if (options.publicKey.allowCredentials) {
-            for (let cred of options.publicKey.allowCredentials) {
-                if (cred.id) {
-                    cred.id = base64URLToArrayBuffer(cred.id);
-                }
-            }
-        }
-        return options;
-    }
-
-    function authLogin() {
+    function qrLogin() {
         return {
-            username: '',
-            state: 'input',
-            errorMessage: '',
-            user: {
-                ID: '',
-                username: '',
-                email: ''
-            },
-            
-            async submitLogin() {
-                if (!this.username) {
-                    this.state = 'error';
-                    this.errorMessage = 'Username or Email is required.';
-                    return;
-                }
+            sessionID: '{{ .SessionID }}',
+            state: 'polling',
+            pollInterval: null,
+            startTime: Date.now(),
+            maxDuration: 5 * 60 * 1000, // 5 minutes session expiration
 
-                this.state = 'connecting';
-                this.errorMessage = '';
-                
-                try {
-                    // Step 1: Begin Login
-                    const beginResponse = await fetch(`/api/v1/auth/login/begin?username=${encodeURIComponent(this.username)}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        }
-                    });
-                    
-                    const beginResult = await beginResponse.json();
-                    if (!beginResponse.ok || !beginResult.isSuccess) {
-                        throw new Error(beginResult.message || 'Failed to start authentication session.');
-                    }
-                    
-                    // Step 2: Show native browser sign in dialog
-                    this.state = 'authenticating';
-                    
-                    const options = beginResult.items.options;
-                    const sessionID = beginResult.items.sessionId;
-                    
-                    const decodedOptions = prepareLoginOptions(options);
-                    
-                    const credential = await navigator.credentials.get({
-                        publicKey: decodedOptions.publicKey
-                    });
-                    
-                    // Step 3: Send the assertions to backend to verify
-                    this.state = 'submitting';
-                    
-                    const serializedAssertion = {
-                        id: credential.id,
-                        rawId: arrayBufferToBase64URL(credential.rawId),
-                        type: credential.type,
-                        response: {
-                            clientDataJSON: arrayBufferToBase64URL(credential.response.clientDataJSON),
-                            authenticatorData: arrayBufferToBase64URL(credential.response.authenticatorData),
-                            signature: arrayBufferToBase64URL(credential.response.signature),
-                            userHandle: credential.response.userHandle ? arrayBufferToBase64URL(credential.response.userHandle) : null
-                        }
-                    };
-                    
-                    const finishResponse = await fetch(`/api/v1/auth/login/finish?session_id=${encodeURIComponent(sessionID)}&username=${encodeURIComponent(this.username)}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(serializedAssertion)
-                    });
-                    
-                    const finishResult = await finishResponse.json();
-                    if (!finishResponse.ok || !finishResult.isSuccess) {
-                        throw new Error(finishResult.message || 'Verification of assertion failed.');
-                    }
-                    
-                    // Step 4: Finished successfully, save user info
-                    this.user = finishResult.items.user;
-                    this.state = 'success';
-                } catch (err) {
-                    console.error(err);
-                    this.state = 'error';
-                    this.errorMessage = err.message || 'An unexpected error occurred.';
-                }
+            init() {
+                // Start polling immediately when component mounts
+                this.startPolling();
             },
 
-            logout() {
-                this.username = '';
-                this.user = { ID: '', username: '', email: '' };
-                this.state = 'input';
+            startPolling() {
+                this.pollInterval = setInterval(async () => {
+                    // Check local timeout first
+                    if (Date.now() - this.startTime > this.maxDuration) {
+                        this.expireSession();
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/v1/auth/qr/poll/${encodeURIComponent(this.sessionID)}`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.status === 401) {
+                            // If backend returns 401 Unauthorized, the session might be invalid or expired
+                            this.expireSession();
+                            return;
+                        }
+
+                        const result = await response.json();
+                        if (response.ok && result.isSuccess) {
+                            if (result.message === 'Logged in' || (result.items && result.items.accessToken)) {
+                                this.handleSuccess();
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Polling error:', err);
+                    }
+                }, 2000);
+            },
+
+            handleSuccess() {
+                clearInterval(this.pollInterval);
+                this.state = 'success';
+                // Wait 1.5 seconds for the success state UI, then redirect
+                setTimeout(() => {
+                    window.location.href = '/profile';
+                }, 1500);
+            },
+
+            expireSession() {
+                clearInterval(this.pollInterval);
+                this.state = 'expired';
+            },
+
+            refreshQR() {
+                window.location.reload();
             }
         };
     }

@@ -5,10 +5,13 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/MarcelArt/passwordless/internal/configs"
+	"github.com/MarcelArt/passwordless/internal/v1/repositories"
 	"github.com/MarcelArt/passwordless/internal/v1/routes"
+	"github.com/MarcelArt/passwordless/internal/v1/services"
 	webroutes "github.com/MarcelArt/passwordless/web/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -36,6 +39,12 @@ to quickly create a Cobra application.`,
 			gin.SetMode(gin.ReleaseMode)
 		}
 
+		uRepo := repositories.NewUserRepo(configs.DB)
+		authService, err := services.NewAuthService(uRepo)
+		if err != nil {
+			log.Fatalf("failed constructing auth service: %s", err.Error())
+		}
+
 		r := gin.Default()
 		r.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{"*"},
@@ -49,9 +58,9 @@ to quickly create a Cobra application.`,
 		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 		api := r.Group("/api")
-		routes.SetupRoutes(api)
+		routes.SetupRoutes(api, authService)
 
-		webroutes.SetupWebRoutes(r)
+		webroutes.SetupWebRoutes(r, authService)
 
 		port := fmt.Sprintf(":%s", configs.Env.PORT)
 		r.Run(port)

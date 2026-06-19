@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"log"
-
 	"github.com/MarcelArt/passwordless/internal/configs"
 	"github.com/MarcelArt/passwordless/internal/v1/handlers"
 	"github.com/MarcelArt/passwordless/internal/v1/middlewares"
@@ -11,13 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupAuthRoutes(v1 *gin.RouterGroup, authM *middlewares.AuthMiddleware) {
+func setupAuthRoutes(v1 *gin.RouterGroup, authM *middlewares.AuthMiddleware, service services.IAuthService) {
 	uRepo := repositories.NewUserRepo(configs.DB)
-	service, err := services.NewAuthService(uRepo)
-	if err != nil {
-		log.Fatalf("failed constructing auth service: %s", err.Error())
-		return
-	}
 	uService := services.NewUserService(uRepo)
 	h := handlers.NewAuthHandler(service, uService)
 

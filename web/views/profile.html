@@ -1,0 +1,47 @@
+{{ define "content" }}
+<div class="glass-card">
+    <div class="text-center">
+        <div class="flex-center" style="height: 100px; margin-bottom: 24px;">
+            <div style="border-radius: 50%; padding: 4px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);">
+                <img src="https://ui-avatars.com/api/?background=090a0f&color=00f5d4&size=128&bold=true&name={{ urlquery .User.Username }}" style="width: 88px; height: 88px; border-radius: 50%; display: block;" />
+            </div>
+        </div>
+        
+        <h1>Welcome, {{ .User.Username }}</h1>
+        <p class="subtitle" style="margin-bottom: 32px;">You are securely signed in via passwordless QR login</p>
+        
+        <!-- Profile details -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; text-align: left; margin-bottom: 32px;">
+            <div style="margin-bottom: 18px;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Username</div>
+                <div style="font-size: 1.1rem; color: #fff; font-weight: 500;">{{ .User.Username }}</div>
+            </div>
+            
+            <div style="margin-bottom: 18px;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Email Address</div>
+                <div style="font-size: 1.1rem; color: #fff; font-weight: 500;">{{ .User.Email }}</div>
+            </div>
+
+            <div style="margin-bottom: 18px; display: flex; justify-content: space-between; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 18px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">User ID</div>
+                    <div style="font-family: monospace; font-size: 1rem; color: var(--secondary); font-weight: 600;">{{ .User.ID }}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Member Since</div>
+                    <div style="font-size: 0.95rem; color: #fff;">{{ .User.CreatedAt.Format "Jan 02, 2006" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/logout" class="btn btn-primary" style="text-decoration: none; background: linear-gradient(135deg, #ff5c8a 0%, #d90429 100%); box-shadow: 0 4px 15px rgba(255, 92, 138, 0.3);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Sign Out
+        </a>
+    </div>
+</div>
+{{ end }}
