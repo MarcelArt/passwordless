@@ -211,7 +211,7 @@ func (h *AuthHandler) QrApprove(c *gin.Context) {
 	}
 
 	if ok := h.service.QrApprove(sessionID, uint(userID)); !ok {
-		c.JSON(http.StatusUnauthorized, common.ResultOk(false, "qr invalid"))
+		c.JSON(http.StatusBadRequest, common.ResultOk(false, "qr invalid"))
 		return
 	}
 
