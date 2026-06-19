@@ -56,7 +56,7 @@ func (m *AuthMiddleware) Refresh(c *gin.Context) {
 	refreshToken := c.GetHeader("X-Refresh-Token")
 	if refreshToken == "" {
 		_, res := common.ResultErr(errors.New("missing refresh token"), "")
-		c.JSON(http.StatusBadRequest, res)
+		c.JSON(http.StatusUnauthorized, res)
 		c.Abort()
 		return
 	}
