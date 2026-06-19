@@ -10,6 +10,6 @@ func SetupRoutes(api *gin.RouterGroup) {
 
 	v1 := api.Group("/v1")
 	setupOauthRoutes(v1)
-	setupAuthRoutes(v1)
+	setupAuthRoutes(v1, authM)
 	setupUserRoutes(v1, authM)
 }

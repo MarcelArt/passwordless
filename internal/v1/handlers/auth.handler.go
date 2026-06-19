@@ -12,12 +12,14 @@ import (
 )
 
 type AuthHandler struct {
-	service services.IAuthService
+	service  services.IAuthService
+	uService services.IUserService
 }
 
-func NewAuthHandler(service services.IAuthService) *AuthHandler {
+func NewAuthHandler(service services.IAuthService, uService services.IUserService) *AuthHandler {
 	return &AuthHandler{
-		service: service,
+		service:  service,
+		uService: uService,
 	}
 }
 
@@ -157,4 +159,61 @@ func (h *AuthHandler) QrStart(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "image/png", png)
+}
+
+// QrPoll handles checking the status of QR code authentication
+// @Summary      Poll QR Authentication Status
+// @Description  Checks the authentication status of the QR session using the session ID. Returns token pair if logged in.
+// @Tags         Auth
+// @Produce      json
+// @Param        session_id  path      string  true  "Session ID"
+// @Success      200         {object}  common.Result[models.LoginResponse] "Logged in or not logged in yet (item is nil when not logged in)"
+// @Failure      401         {object}  common.Result[string] "Unauthorized"
+// @Router       /v1/auth/qr/poll/{session_id} [get]
+func (h *AuthHandler) QrPoll(c *gin.Context) {
+	sessionID := c.Param("session_id")
+
+	userID := h.service.QrCheck(sessionID)
+
+	if userID == 0 {
+		c.JSON(http.StatusOK, common.ResultOk[any](nil, "not logged in yet"))
+		return
+	}
+
+	user, err := h.uService.RegenerateTokenPair(c, userID, true)
+	if err != nil {
+		_, res := common.ResultErr(err, "")
+		c.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk(user, "Logged in"))
+}
+
+// QrApprove handles approving a QR code authentication session
+// @Summary      Approve QR Authentication
+// @Description  Approves a QR code authentication session by setting the associated user ID.
+// @Tags         Auth
+// @Produce      json
+// @Param        session_id  path      string  true  "Session ID"
+// @Success      200         {object}  common.Result[bool]      "QR authentication approved"
+// @Failure      401         {object}  common.Result[any]       "Invalid token or session invalid"
+// @Security     ApiKeyAuth
+// @Router       /v1/auth/qr/approve/{session_id} [post]
+func (h *AuthHandler) QrApprove(c *gin.Context) {
+	sessionID := c.Param("session_id")
+
+	userID, err := common.MustGet[float64](c, "userId")
+	if err != nil {
+		_, res := common.ResultErr(err, "invalid token")
+		c.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	if ok := h.service.QrApprove(sessionID, uint(userID)); !ok {
+		c.JSON(http.StatusUnauthorized, common.ResultOk(false, "qr invalid"))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk(true, "qr approved"))
 }

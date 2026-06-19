@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/MarcelArt/passwordless/internal/common"
@@ -26,6 +27,8 @@ type IAuthService interface {
 	LoginBegin(c context.Context, username string) (models.BeginLoginWebAuthn, error)
 	LoginFinish(c *gin.Context, username string, sessionID string) (models.LoginResponse, error)
 	QrStart() (string, []byte, error)
+	QrCheck(sessionID string) uint
+	QrApprove(sessionID string, userID uint) bool
 }
 
 type AuthService struct {
@@ -171,6 +174,8 @@ func (s *AuthService) QrStart() (string, []byte, error) {
 	s.qrSession[sID] = &models.QrSession{Exp: exp}
 
 	png, err := qrcode.Encode(sID, qrcode.Medium, 256)
+
+	log.Println("sID :>> ", sID)
 	return sID, png, err
 }
 
@@ -187,4 +192,20 @@ func (s *AuthService) QrApprove(sessionID string, userID uint) bool {
 	}
 
 	return isApproved
+}
+
+func (s *AuthService) QrCheck(sessionID string) uint {
+	session, ok := s.qrSession[sessionID]
+	if !ok {
+		return 0
+	}
+
+	if time.Now().After(session.Exp) {
+		delete(s.qrSession, sessionID)
+		return 0
+	}
+	userID := session.UserID
+
+	// delete(s.qrSession, sessionID)
+	return userID
 }
