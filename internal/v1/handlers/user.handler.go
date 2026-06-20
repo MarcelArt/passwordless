@@ -208,6 +208,34 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, common.ResultOk(res, "Authenticated"))
 }
 
+// GetCurrent godoc
+// @Summary      Get current authenticated user
+// @Description  Get detailed information about the currently authenticated user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  common.Result[entities.User]
+// @Failure      401  {object}  common.Result[string]
+// @Failure      500  {object}  common.Result[string]
+// @Security     ApiKeyAuth
+// @Router       /v1/users/current [get]
+func (h *UserHandler) GetCurrent(c *gin.Context) {
+	id, err := common.MustGet[float64](c, "userId")
+	if err != nil {
+		_, res := common.ResultErr(err, "invalid token")
+		c.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	user, err := h.service.GetByID(c, id)
+	if err != nil {
+		c.JSON(common.ResultErr(err, "failed getting user"))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.ResultOk(user, "User found"))
+}
+
 // AssignRoles godoc
 // @Summary      Assign roles to user
 // @Description  Assign a list of role IDs to a user by user ID

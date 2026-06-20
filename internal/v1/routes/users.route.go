@@ -21,6 +21,7 @@ func setupUserRoutes(v1 *gin.RouterGroup, authM *middlewares.AuthMiddleware) {
 	users.POST("/refresh", authM.Refresh, h.Refresh)
 
 	users.GET("/", h.Read)
+	users.GET("/current", authM.Authn, h.GetCurrent)
 	users.GET("/:id", h.GetByID)
 
 	users.PUT("/:id", h.Update)
