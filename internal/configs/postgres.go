@@ -13,7 +13,7 @@ import (
 var DB *gorm.DB
 var dsn string
 
-func ConnectDB() {
+func ConnectDB() *gorm.DB {
 	p := Env.DBPort
 	port, err := strconv.ParseUint(p, 10, 32)
 	dsn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s search_path=%s sslmode=disable", Env.DBHost, port, Env.DBUser, Env.DBPassword, Env.DBName, Env.DBSchema)
@@ -37,6 +37,8 @@ func ConnectDB() {
 	DB = db
 
 	fmt.Println("Connection Opened to Database")
+
+	return db
 }
 
 func MigrateDB() error {
